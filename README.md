@@ -3,7 +3,9 @@ This lab is a a MapReduce system. I implement a worker process that calls applic
 ## Usage
 Through below command, you must build wc.go file:
 `go build -race -buildmode=plugin ../mrapps/wc.go`
+
  In the main directory, run the master:
 `go run -race mrcoordinator.go pg-*.txt`
+
  In one or more other windows, run some workers: 
 `go run -race mrworker.go wc.so`
