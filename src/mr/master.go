@@ -36,6 +36,7 @@ type Master struct {
 	finishedMapTaskLock 	sync.Mutex
 	finishedReduceTask		int
 	finishedReduceTaskLock	sync.Mutex
+	isReduceStart 			bool
 }
 
 func (m *Master) NextTaskID() (id int) {
@@ -132,6 +133,7 @@ func MakeMaster(files []string, nReduce int)  *Master{
 		nMap:			0,
 		tasks:          make(map[int]Task),
 		finishedMapOutputFiles: finishedMapOutputFiles,
+		isReduceStart:	false,
 	}
 
 	var task Task
@@ -187,6 +189,10 @@ func (m *Master) handleTimeoutTasks()  {
 }
 
 func (m *Master) mergeIntermediateFiles()  {
+	if m.isReduceStart {
+		time.Sleep(time.Second)
+	}
+
 	for {
 		isMapTaskFinished := func() bool{
 			m.tasksLock.Lock()
@@ -194,15 +200,14 @@ func (m *Master) mergeIntermediateFiles()  {
 			return m.nMap == m.finishedMapTask	
 		}()
 
-		if(isMapTaskFinished){
+		if isMapTaskFinished {
 			break
 		}
 
 		time.Sleep(time.Second)
 	}
 
-	fmt.Println("-------------------------------------")
-	fmt.Println(m.finishedMapOutputFiles)
+	
 
 	spliter := func(r rune) bool { return r == '-' }
 	reduceFiles := make(map[int][]string)
@@ -214,6 +219,7 @@ func (m *Master) mergeIntermediateFiles()  {
 		}
 		reduceFiles[reduceID] = append(reduceFiles[reduceID], filename)
 	}
+
 
 	m.tasksLock.Lock()
 	defer m.tasksLock.Unlock()
@@ -230,7 +236,8 @@ func (m *Master) mergeIntermediateFiles()  {
 			reduceID:   i,
 		}
 		m.tasks[task.taskID] = task
-		m.nReduce ++
 	}
+	m.isReduceStart = true
+
 	
 }
